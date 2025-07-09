@@ -1,0 +1,12 @@
+# Ignore all Git related files
+.git
+.gitignore
+
+# Ignore Python specific files and directories
+*.pyc
+*.sqlite3
+__pycache__/
+venv/
+.env
+.DS_Store
+*.log
