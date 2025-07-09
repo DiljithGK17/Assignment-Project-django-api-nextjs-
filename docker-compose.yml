@@ -26,6 +26,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: my-fullstack-backend:local 
     ports:
       - "8000:8000"
     env_file:
@@ -43,6 +44,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    image: my-fullstack-frontend:local    
     ports:
       - "3000:3000"
     env_file:

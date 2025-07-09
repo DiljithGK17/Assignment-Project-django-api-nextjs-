@@ -21,8 +21,6 @@ WORKDIR /app
 
 					
 COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
-COPY --from=builder /usr/local/bin/gunicorn /usr/local/bin/gunicorn
-COPY --from=builder /usr/local/bin/django-admin /usr/local/bin/django-admin
 
 COPY . .
 					
@@ -32,6 +30,6 @@ USER appuser
 EXPOSE 8000
 
 					
-CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn --bind 0.0.0.0:8000 core.wsgi:application"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python -m gunicorn --bind 0.0.0.0:8000 core.wsgi:application"]
 
 
