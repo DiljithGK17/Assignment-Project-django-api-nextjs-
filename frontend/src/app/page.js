@@ -1,8 +1,9 @@
+// frontend/src/app/page.js
 "use client";
 
-export const dynamic = 'force-dynamic';
+// REMOVE THIS LINE: export const dynamic = 'force-dynamic'; // We are solving the build error properly
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react"; // <--- Import Suspense
 import { useRouter, useSearchParams } from "next/navigation";
 
 /**
@@ -23,7 +24,10 @@ async function deleteMenu(id) {
  * Fetches menu data from the server.
  */
 async function getData() {
-  const res = await fetch("http://127.0.0.1:8000/api/menu/");
+  // IMPORTANT: For Docker Compose, backend is 'backend' service name
+  // Use the environment variable NEXT_PUBLIC_API_URL that you defined in .env.local
+  const api_url = process.env.NEXT_PUBLIC_API_URL || "http://backend:8000/api";
+  const res = await fetch(`${api_url}/menu/`);
   if (!res.ok) {
     throw new Error("Failed to fetch data");
   }
@@ -58,10 +62,10 @@ const MenuItem = ({ id, name, price, onEdit, onDelete }) => {
 };
 
 /**
- * The main page component.
+ * Component that uses client-only hooks like useSearchParams.
+ * Wrapped in Suspense.
  */
-export default function Page() {
-  const [menuItems, setMenuItems] = useState(null);
+function SearchParamsHandler() {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -71,15 +75,6 @@ export default function Page() {
     type: "", // either 'add' or 'update'
   });
 
-  // Fetch menu items on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      const data = await getData();
-      setMenuItems(data);
-    };
-    fetchData().catch(console.error);
-  }, []);
-
   // Detect changes in URL parameters for success messages
   useEffect(() => {
     if (!!params.get("action")) {
@@ -87,7 +82,7 @@ export default function Page() {
         type: params.get("action"),
         show: true,
       });
-      router.replace("/");
+      router.replace("/"); // Clear the query param
     }
   }, [params, router]);
 
@@ -101,6 +96,34 @@ export default function Page() {
     return () => clearTimeout(timer);
   }, [displaySuccessMessage.show]);
 
+  return (
+    <>
+      {displaySuccessMessage.show && (
+        <p className="success-message">
+          {displaySuccessMessage.type === "add" ? "Added a" : "Modified a"} menu item.
+        </p>
+      )}
+    </>
+  );
+}
+
+
+/**
+ * The main page component.
+ */
+export default function Page() {
+  const [menuItems, setMenuItems] = useState(null);
+  const router = useRouter(); // Still needed directly for navigation buttons
+
+  // Fetch menu items on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await getData();
+      setMenuItems(data);
+    };
+    fetchData().catch(console.error);
+  }, []);
+
   // Handle deletion of a menu item
   const handleDelete = (id) => {
     setMenuItems((items) => items.filter((item) => item.id !== id));
@@ -111,12 +134,11 @@ export default function Page() {
       <button className="add-button" onClick={() => router.push("/add")}>
         Add
       </button>
-      {displaySuccessMessage.show && (
-        <p className="success-message">
-          {displaySuccessMessage.type === "add" ? "Added a" : "Modified a"} menu
-          item.
-        </p>
-      )}
+      {/* Wrap SearchParamsHandler in Suspense */}
+      <Suspense fallback={<div>Loading messages...</div>}>
+        <SearchParamsHandler />
+      </Suspense>
+
       {menuItems ? (
         menuItems.map((item) => (
           <MenuItem

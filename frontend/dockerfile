@@ -1,5 +1,3 @@
-# frontend/Dockerfile
-# ...
 # Stage 1: Install dependencies and build the Next.js application
 FROM node:18-alpine AS builder
 
@@ -13,20 +11,22 @@ RUN \
     fi
 
 COPY . .
-# REMOVE THIS LINE: RUN npm run build
-# ...
-# Stage 2: Final production image (becomes development image now)
+RUN npm run build # <--- ADD THIS LINE BACK! This runs the production build.
+
+# Stage 2: Serve the Next.js application with a minimal server
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy all files from builder, including node_modules etc.
-COPY --from=builder /app .
-# Note: If you have a .next directory from a *successful local build*,
-#       you can copy it here: COPY --from=builder /app/.next ./.next
-#       but since the build is failing, we're bypassing it.
+# Copy only the necessary production build artifacts from the builder stage
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json 
+COPY --from=builder /app/public ./public
+# If your project uses a custom server.js, copy it:
+# COPY --from=builder /app/server.js ./server.js
 
 EXPOSE 3000
 
-# CHANGE THE CMD to run the development server
-CMD ["npm", "run", "dev"] 
+# Command to run the Next.js application in production mode
+CMD ["npm", "start"]
