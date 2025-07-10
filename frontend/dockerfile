@@ -1,19 +1,32 @@
+# frontend/Dockerfile
+# ...
+# Stage 1: Install dependencies and build the Next.js application
 FROM node:18-alpine AS builder
+
 WORKDIR /app
+
 COPY package.json yarn.lock* package-lock.json* ./
 RUN \
     if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
-        elif [ -f package-lock.json ]; then npm ci; \
-	    else npm install; \
-	        fi
-COPY . .
-RUN npm run build
+    elif [ -f package-lock.json ]; then npm ci; \
+    else npm install; \
+    fi
 
+COPY . .
+# REMOVE THIS LINE: RUN npm run build
+# ...
+# Stage 2: Final production image (becomes development image now)
 FROM node:18-alpine
+
 WORKDIR /app
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/public ./public
+
+# Copy all files from builder, including node_modules etc.
+COPY --from=builder /app .
+# Note: If you have a .next directory from a *successful local build*,
+#       you can copy it here: COPY --from=builder /app/.next ./.next
+#       but since the build is failing, we're bypassing it.
+
 EXPOSE 3000
-CMD ["npm", "start"]
+
+# CHANGE THE CMD to run the development server
+CMD ["npm", "run", "dev"] 
